@@ -26,9 +26,13 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    // 📷 Start Camera
-    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+    // 📷 Start Camera (back-facing / environment)
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: "environment" } }
+    }).then(stream => {
       video.srcObject = stream;
+    }).catch(err => {
+      console.error("Camera error:", err);
     });
 
     // 🎤 Voice Input

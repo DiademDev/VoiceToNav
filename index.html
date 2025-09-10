@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wayfinding Demo</title>
+</head>
+<body>
+  <h2>Wayfinding Prototype</h2>
+  
+  <!-- 🎤 Voice Input -->
+  <button id="start-voice">Ask a Question</button>
+  <p id="voice-text"></p>
+  
+  <!-- 📷 Camera Stream -->
+  <video id="video" autoplay playsinline width="300"></video>
+  <button id="capture">Scan Directory</button>
+  <canvas id="canvas" hidden></canvas>
+  <p id="ocr-text"></p>
+  
+  <!-- Result -->
+  <p id="result"></p>
+  
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // 📷 Start Camera
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+    });
+
+    // 🎤 Voice Input
+    document.getElementById("start-voice").onclick = () => {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "en-US";
+      recognition.start();
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        document.getElementById("voice-text").innerText = "You asked: " + transcript;
+        window.userQuery = transcript.toLowerCase();
+      };
+    };
+
+    // 📷 Capture + OCR
+    document.getElementById("capture").onclick = async () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL("image/png");
+
+      const result = await Tesseract.recognize(dataUrl, "eng");
+      const ocrText = result.data.text.toLowerCase();
+      document.getElementById("ocr-text").innerText = "Board says:\n" + ocrText;
+
+      // 🧠 Simple Matching Logic
+      let reply = "Sorry, I couldn’t find your destination.";
+      if (window.userQuery && ocrText.includes(window.userQuery.split(" ").pop())) {
+        reply = `I found ${window.userQuery}. Follow the signs to reach it.`;
+      }
+
+      document.getElementById("result").innerText = reply;
+
+      // 🔊 Speak Result
+      const utterance = new SpeechSynthesisUtterance(reply);
+      speechSynthesis.speak(utterance);
+    };
+  </script>
+</body>
+</html>

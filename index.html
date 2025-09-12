@@ -33,25 +33,25 @@
     .results {
       color: white;
       text-shadow: 2px 2px 4px black;
-      font-size: 1.5rem;
-      text-align: center;
-      margin-bottom: 1rem;
+      font-size: 3.0rem;
+      text-align: top;
+      margin-top: 1rem;
       padding: 0 1rem;
     }
     .buttons {
       display: flex;
-      justify-content: left;
-      gap: 1rem;
+      justify-content: column;
+      gap: 2rem;
       width: 100%;
     }
     button {
       flex: 1;
-      padding: 2.5rem;
-      font-size: 1.6rem;
+      padding: 1.5rem;
+      font-size: 3.0rem;
       font-weight: bold;
       border: none;
-      border-radius: 1rem;
-      background: rgba(0,0,0,0.7);
+      border-radius: 3rem;
+      background: rgba(255, 136, 0, 1.0);
       color: white;
       cursor: pointer;
     }
@@ -87,7 +87,7 @@
     let track; 
     let torchOn = false;
 
-    // 📷 Start Camera (back-facing / environment)
+    // Start Camera (back-facing / environment)
     navigator.mediaDevices.getUserMedia({
       video: { facingMode: { exact: "environment" } }
     }).then(stream => {
@@ -97,7 +97,7 @@
       console.error("Camera error:", err);
     });
 
-    // 📍 Tap to focus
+    // Tap to focus
     video.addEventListener("click", async () => {
       if (!track) return;
       const capabilities = track.getCapabilities();
@@ -111,7 +111,7 @@
       }
     });
 
-    // 🔦 Toggle Torch (Flashlight)
+    // Toggle Torch (Flashlight)
     document.getElementById("torch").onclick = async () => {
       if (!track) return;
       const capabilities = track.getCapabilities();
@@ -128,7 +128,7 @@
       }
     };
 
-    // 🎤 Voice Input
+    // Voice Input
     document.getElementById("start-voice").onclick = () => {
       const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
       recognition.lang = "en-US";
@@ -140,7 +140,7 @@
       };
     };
 
-    // 📷 Capture + OCR
+    // Capture + OCR
     document.getElementById("capture").onclick = async () => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -148,13 +148,30 @@
       const dataUrl = canvas.toDataURL("image/png");
 
       const result = await Tesseract.recognize(dataUrl, "eng");
-      const ocrText = result.data.text.toLowerCase();
+      const ocrText = result.data.text;
       document.getElementById("ocr-text").innerText = "Board says:\n" + ocrText;
 
-      // 🧠 Simple Matching Logic
       let reply = "Sorry, I couldn’t find your destination.";
-      if (window.userQuery && ocrText.includes(window.userQuery.split(" ").pop())) {
-        reply = `I found ${window.userQuery}. Follow the signs to reach it.`;
+
+      if (window.userQuery) {
+        const query = window.userQuery.toLowerCase();
+        const lines = ocrText.split("\n").map(l => l.toLowerCase());
+
+        // Look for a line containing the query word
+        const matchLine = lines.find(line => line.includes(query));
+        if (matchLine) {
+          let direction = "";
+
+          // Normalize arrows
+          if (/[←<-]/.test(matchLine)) direction = "turn left";
+          else if (/[→>-]/.test(matchLine)) direction = "turn right";
+          else if (/[↑^]/.test(matchLine)) direction = "go straight";
+          else if (/[↓v]/.test(matchLine)) direction = "go down";
+
+          reply = direction
+            ? `I found ${query}. ${direction}.`
+            : `I found ${query}.`;
+        }
       }
 
       document.getElementById("result").innerText = reply;
